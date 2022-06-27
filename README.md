@@ -7,7 +7,7 @@ The main purpose of the Fairlaunch crowdfunding contract is to enable crowdfundi
     * ```_start_time``` - this is the time of the start of the crowdfund. ( Unix timestamp )
     * ```_end_time``` - this is the time of the end of the crowdfund. ( Unix timestamp )
     * ```_team_share``` - this parameter is defining what percentage of the total ETH liquidity will be sent to the token owner.
-    * ```_token_address``` - this is the address of the token for which this crowdfunding is made.
+    * ```_token_address``` - this is the address of the token for which this crowdfunding is being made.
     * ```_WETH_address``` - the contract address of the WETH token.
     * ```_UniswapV2Factory_address``` - the contract address of the Uniswap V2 Factory contract.
     * ```_UniswapV2Router02_address``` - the contract address of the Uniswap V2 Router contract.
@@ -19,7 +19,7 @@ The main purpose of the Fairlaunch crowdfunding contract is to enable crowdfundi
 * Method ```createPoolAndAddLiquidity``` - Once contributing deposits are over this method is providing the ```_tokens_for_liquidity``` and the collected ETH amount *( minus the team share )* as liquidity for the Uniswap trading pair. The ETH team share amount is being sent to the owner of the fairlaunch crowdfund after the liquidity is sent to Uniswap.
 * Method ```cancelFairlaunch``` - this method is created if for whatever reason the fairlaunch crowdfunding has to be stopped *( during bug, change of the initial parameters, etc )*.
 
-#### User methods breakdown:
+#### Contributors methods breakdown:
 * Method ```depositETH``` - this is the method where users are contributing the the fairlaunch crowdfunding.
 * Method ```claimTokens``` - once contributing deposits are over and the initial liquidity is provided to Uniswap, contributors will be using this method to claim their token share.
 * Method ```withdrawETH``` - if for whatever reason the fairlaunch crowdfunding is cancelled then the contributors have the permission to withdraw the ETH amount which they have previously sent to the contract by using method ```depositETH```.
