@@ -23,7 +23,17 @@ contract FairlaunchProgramContract is Ownable {
 
     mapping(address => uint256) public deposits;
 
-    constructor(uint64 _start_time, uint64 _end_time, uint8 _team_share, address _token_address, address _WETH_address, address _UniswapV2Factory_address, address _UniswapV2Router02_address, uint128 _min_deposit, uint128 _max_deposit) {
+    constructor(
+        uint64 _start_time,
+        uint64 _end_time,
+        uint8 _team_share,
+        address _token_address,
+        address _WETH_address,
+        address _UniswapV2Factory_address,
+        address _UniswapV2Router02_address,
+        uint128 _min_deposit,
+        uint128 _max_deposit
+    ) {
         require(_start_time < _end_time, "Error: Invalid start and end time of the fairlaunch.");
         require(_team_share > 0 && _team_share <= 50, "Error: Team share can be only between 1 and 50 percentages.");
         require(_token_address != address(0), "Error: Invalid token address.");
@@ -43,12 +53,23 @@ contract FairlaunchProgramContract is Ownable {
         // approve Uniswap router in order to add liquidity at later stage
         ERC20.approve(_UniswapV2Router02_address, ERC20.totalSupply());
 
-        require(UniswapV2Factory.getPair(token_address, _WETH_address) == address(0), "Error: Uniswap pool already existing.");
+        require(
+            UniswapV2Factory.getPair(token_address, _WETH_address) == address(0),
+            "Error: Uniswap pool already existing."
+        );
     }
 
-    event DepositTokens(address indexed _address, uint256 _tokens_for_claiming, uint256 _tokens_for_liquidity);
+    event DepositTokens(
+        address indexed _address,
+        uint256 _tokens_for_claiming,
+        uint256 _tokens_for_liquidity
+    );
 
-    event CreatePoolAndAddLiquidity(address indexed _address, uint256 _tokens_for_liquidity, uint256 _total_eth_deposited);
+    event CreatePoolAndAddLiquidity(
+        address indexed _address,
+        uint256 _tokens_for_liquidity,
+        uint256 _total_eth_deposited
+    );
 
     event CancelFairlaunch(address indexed _address, uint256 _amount);
 
@@ -61,9 +82,12 @@ contract FairlaunchProgramContract is Ownable {
     /*
     * Used by the fairlaunch to deposit the tokens for the fairlaunch
     */
-    function depositTokens(uint256 _tokens_for_claiming, uint256 _tokens_for_liquidity) external onlyOwner {
+    function depositTokens(
+        uint256 _tokens_for_claiming,
+        uint256 _tokens_for_liquidity
+    ) external onlyOwner {
         require(tokens_for_claiming == 0 && tokens_for_liquidity == 0, "Error: Tokens already deposited.");
-        require(_tokens_for_claiming >_tokens_for_liquidity, "Error: Tokens for claiming have to be lesser than tokens for liquidity to create incentive for users to join early at the crowdfunding.");
+        require(_tokens_for_claiming > _tokens_for_liquidity, "Error: Tokens for claiming have to be lesser than tokens for liquidity to create incentive for users to join early at the crowdfunding.");
         ERC20.transferFrom(_msgSender(), address(this), _tokens_for_claiming + _tokens_for_liquidity);
         tokens_for_claiming = _tokens_for_claiming;
         tokens_for_liquidity = _tokens_for_liquidity;
@@ -82,14 +106,21 @@ contract FairlaunchProgramContract is Ownable {
         uint256 eth_for_liquidity = total_eth_deposited - _team_share;
 
         // providing liquidity
-        (uint amountToken, uint amountETH, ) = UniswapV2Router02.addLiquidityETH{value : eth_for_liquidity}(token_address, tokens_for_liquidity, tokens_for_liquidity, eth_for_liquidity, owner(), block.timestamp + 600);
+        (uint amountToken, uint amountETH,) = UniswapV2Router02.addLiquidityETH{value : eth_for_liquidity}(
+            token_address,
+            tokens_for_liquidity,
+            tokens_for_liquidity,
+            eth_for_liquidity,
+            owner(),
+            block.timestamp + 600
+        );
         require(amountToken == tokens_for_liquidity && amountETH == eth_for_liquidity, "Error: Method addLiquidityETH failed.");
-
-        // sending team share to the owner
-        payable(owner()).transfer(_team_share);
 
         // enable token withdrawals
         liquidity_added = true;
+
+        // sending team share to the owner
+        payable(owner()).transfer(_team_share);
 
         emit CreatePoolAndAddLiquidity(_msgSender(), tokens_for_liquidity, total_eth_deposited);
     }
@@ -124,7 +155,7 @@ contract FairlaunchProgramContract is Ownable {
     /*
     * After liquidity is added to Uniswap with this method users are able to claim their token share
     */
-    function claimTokens() external returns(uint256) {
+    function claimTokens() external returns (uint256) {
         require(hasDepositsFinished(), "Error: Deposits are still active. You can withdraw once they finish.");
         require(getCurrentTokenShare() > 0, "Error: Invalid deposit amount.");
         require(!cancel_fairlaunch, "Error: Fairlaunch cancelled.");
@@ -142,7 +173,7 @@ contract FairlaunchProgramContract is Ownable {
     /*
     * If the fairlaunch is cancelled users are able to withdraw their previously deposited ETH
     */
-    function withdrawETH() external returns(uint256) {
+    function withdrawETH() external returns (uint256) {
         require(cancel_fairlaunch, "Error: Fairlaunch not cancelled.");
         require(getCurrentTokenShare() > 0 && deposits[_msgSender()] > 0, "Error: Invalid deposit amount.");
 
@@ -159,7 +190,7 @@ contract FairlaunchProgramContract is Ownable {
     /*
     * Returning the current token share for the current user
     */
-    function getCurrentTokenShare() public view returns(uint256) {
+    function getCurrentTokenShare() public view returns (uint256) {
         if (deposits[_msgSender()] > 0) {
             return (((deposits[_msgSender()] * scaling) / total_eth_deposited) * tokens_for_claiming) / scaling;
         } else {
@@ -167,11 +198,14 @@ contract FairlaunchProgramContract is Ownable {
         }
     }
 
-    function areDepositsActive() public view returns(bool) {
-        return block.timestamp > start_time && block.timestamp < end_time && tokens_for_claiming != 0 && tokens_for_liquidity != 0;
+    function areDepositsActive() public view returns (bool) {
+        return block.timestamp > start_time &&
+        block.timestamp < end_time &&
+        tokens_for_claiming != 0 &&
+        tokens_for_liquidity != 0;
     }
 
-    function hasDepositsFinished() public view returns(bool) {
+    function hasDepositsFinished() public view returns (bool) {
         return block.timestamp > start_time && block.timestamp > end_time;
     }
 }
@@ -181,7 +215,18 @@ interface IUniswapV2Factory {
 }
 
 interface IUniswapV2Router02 {
-    function addLiquidityETH(address token, uint amountTokenDesired, uint amountTokenMin, uint amountETHMin, address to, uint deadline) external payable returns (uint amountToken, uint amountETH, uint liquidity);
+    function addLiquidityETH(
+        address token,
+        uint amountTokenDesired,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        int deadline
+    ) external payable returns (
+        uint amountToken,
+        uint amountETH,
+        uint liquidity
+    );
 }
 
 interface IERC20 {

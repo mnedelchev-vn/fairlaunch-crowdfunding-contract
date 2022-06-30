@@ -1,6 +1,6 @@
 # Fairlaunch crowdfunding contract
 
-The main purpose of the Fairlaunch crowdfunding contract is to enable crowdfunding for a new token and after the fairlaunch crowdfund is done to securely create Uniswap trading pair and provide the collected liquidity.
+The main purpose of the Fairlaunch crowdfunding contract is to enable crowdfunding for a new token and after the fairlaunch crowdfund is done to securely create Uniswap trading pair and provide the collected liquidity. The 
 
 #### Owner methods breakdown:
 * The ```constructor``` is accepting the following parameters:
