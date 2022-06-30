@@ -3,6 +3,38 @@ pragma solidity ^0.8.0;
 
 import "./Ownable.sol";
 
+
+interface IUniswapV2Factory {
+    function getPair(address tokenA, address tokenB) external view returns (address pair);
+}
+
+
+interface IUniswapV2Router02 {
+    function addLiquidityETH(
+        address token,
+        uint amountTokenDesired,
+        uint amountTokenMin,
+        uint amountETHMin,
+        address to,
+        uint deadline
+    ) external payable returns (
+        uint amountToken,
+        uint amountETH,
+        uint liquidity
+    );
+}
+
+
+interface IERC20 {
+    function transferFrom(address _from, address _to, uint256 _tokens) external returns (bool success);
+
+    function transfer(address _to, uint _tokens) external returns (bool);
+
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    function totalSupply() external returns (uint256);
+}
+
 contract FairlaunchProgramContract is Ownable {
     bool public cancelFairlaunchBool = false;
     bool public liquidityAdded = false;
@@ -207,33 +239,4 @@ contract FairlaunchProgramContract is Ownable {
     function hasDepositsFinished() public view returns (bool) {
         return block.timestamp > startTime && block.timestamp > endTime;
     }
-}
-
-interface IUniswapV2Factory {
-    function getPair(address tokenA, address tokenB) external view returns (address pair);
-}
-
-interface IUniswapV2Router02 {
-    function addLiquidityETH(
-        address token,
-        uint amountTokenDesired,
-        uint amountTokenMin,
-        uint amountETHMin,
-        address to,
-        uint deadline
-    ) external payable returns (
-        uint amountToken,
-        uint amountETH,
-        uint liquidity
-    );
-}
-
-interface IERC20 {
-    function transferFrom(address _from, address _to, uint256 _tokens) external returns (bool success);
-
-    function transfer(address _to, uint _tokens) external returns (bool);
-
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    function totalSupply() external returns (uint256);
 }
