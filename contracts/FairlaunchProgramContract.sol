@@ -4,71 +4,70 @@ pragma solidity ^0.8.0;
 import "./Ownable.sol";
 
 contract FairlaunchProgramContract is Ownable {
-    uint32 public time_to_react = 86400;
-    uint64 public start_time;
-    address public token_address;
-    bool public cancel_fairlaunch = false;
-    bool public liquidity_added = false;
-    uint8 public team_share; // percentage
-    uint64 public end_time;
-    uint64 constant private scaling = 10 ** 18;
-    uint128 public min_deposit;
-    uint128 public max_deposit;
-    uint256 public tokens_for_claiming;
-    uint256 public tokens_for_liquidity;
-    uint256 public total_eth_deposited;
-    IUniswapV2Factory UniswapV2Factory;
-    IUniswapV2Router02 UniswapV2Router02;
-    IERC20 ERC20;
+    bool public cancelFairlaunchBool = false;
+    bool public liquidityAdded = false;
+    uint64 public startTime;
+    address public tokenAddress;
+    uint8 public teamShare; // percentage
+    uint64 public endTime;
+    uint64 constant private SCALING = 10 ** 18;
+    uint128 public minDeposit;
+    uint128 public maxDeposit;
+    uint256 public tokensForClaiming;
+    uint256 public tokensForLiquidity;
+    uint256 public totalEthDeposited;
+    IUniswapV2Factory uniswapV2Factory;
+    IUniswapV2Router02 uniswapV2Router02;
+    IERC20 erc20Contract;
 
     mapping(address => uint256) public deposits;
 
     constructor(
-        uint64 _start_time,
-        uint64 _end_time,
-        uint8 _team_share,
-        address _token_address,
-        address _WETH_address,
-        address _UniswapV2Factory_address,
-        address _UniswapV2Router02_address,
-        uint128 _min_deposit,
-        uint128 _max_deposit
+        uint64 _startTime,
+        uint64 _endTime,
+        uint8 _teamShare,
+        address _tokenAddress,
+        address _wethAddress,
+        address _uniswapV2Factory,
+        address _uniswapV2Router02,
+        uint128 _minDeposit,
+        uint128 _maxDeposit
     ) {
-        require(_start_time < _end_time, "Error: Invalid start and end time of the fairlaunch.");
-        require(_team_share > 0 && _team_share <= 50, "Error: Team share can be only between 1 and 50 percentages.");
-        require(_token_address != address(0), "Error: Invalid token address.");
-        require(_UniswapV2Factory_address != address(0), "Error: Invalid UniswapV2Factory address.");
-        require(_UniswapV2Router02_address != address(0), "Error: Invalid UniswapV2Router02 address.");
+        require(_startTime < _endTime, "Error: INVALID_START_END_TIME");
+        require(_teamShare > 0 && _teamShare <= 50, "Error: INVALID_TEAM_SHARE");
+        require(_tokenAddress != address(0), "Error: INVALID_TOKEN_ADDRESS");
+        require(_uniswapV2Factory != address(0), "Error: INVALID _uniswapV2Factory");
+        require(_uniswapV2Router02 != address(0), "Error: INVALID_uniswapV2Router02");
 
-        start_time = _start_time;
-        end_time = _end_time;
-        team_share = _team_share;
-        min_deposit = _min_deposit;
-        max_deposit = _max_deposit;
-        token_address = _token_address;
-        ERC20 = IERC20(token_address);
-        UniswapV2Router02 = IUniswapV2Router02(_UniswapV2Router02_address);
-        UniswapV2Factory = IUniswapV2Factory(_UniswapV2Factory_address);
+        startTime = _startTime;
+        endTime = _endTime;
+        teamShare = _teamShare;
+        minDeposit = _minDeposit;
+        maxDeposit = _maxDeposit;
+        tokenAddress = _tokenAddress;
+        erc20Contract = IERC20(tokenAddress);
+        uniswapV2Router02 = IUniswapV2Router02(_uniswapV2Router02);
+        uniswapV2Factory = IUniswapV2Factory(_uniswapV2Factory);
 
         // approve Uniswap router in order to add liquidity at later stage
-        ERC20.approve(_UniswapV2Router02_address, ERC20.totalSupply());
+        erc20Contract.approve(_uniswapV2Router02, erc20Contract.totalSupply());
 
         require(
-            UniswapV2Factory.getPair(token_address, _WETH_address) == address(0),
-            "Error: Uniswap pool already existing."
+            uniswapV2Factory.getPair(tokenAddress, _wethAddress) == address(0),
+            "Error: ALREADY_EXISTING_POOL"
         );
     }
 
     event DepositTokens(
         address indexed _address,
-        uint256 _tokens_for_claiming,
-        uint256 _tokens_for_liquidity
+        uint256 _tokensForClaiming,
+        uint256 _tokensForLiquidity
     );
 
     event CreatePoolAndAddLiquidity(
         address indexed _address,
-        uint256 _tokens_for_liquidity,
-        uint256 _total_eth_deposited
+        uint256 _tokensForLiquidity,
+        uint256 _totalEthDeposited
     );
 
     event CancelFairlaunch(address indexed _address, uint256 _amount);
@@ -83,71 +82,71 @@ contract FairlaunchProgramContract is Ownable {
     * Used by the fairlaunch to deposit the tokens for the fairlaunch
     */
     function depositTokens(
-        uint256 _tokens_for_claiming,
-        uint256 _tokens_for_liquidity
+        uint256 _tokensForClaiming,
+        uint256 _tokensForLiquidity
     ) external onlyOwner {
-        require(tokens_for_claiming == 0 && tokens_for_liquidity == 0, "Error: Tokens already deposited.");
-        require(_tokens_for_claiming > _tokens_for_liquidity, "Error: Tokens for claiming have to be lesser than tokens for liquidity to create incentive for users to join early at the crowdfunding.");
-        ERC20.transferFrom(_msgSender(), address(this), _tokens_for_claiming + _tokens_for_liquidity);
-        tokens_for_claiming = _tokens_for_claiming;
-        tokens_for_liquidity = _tokens_for_liquidity;
+        require(tokensForClaiming == 0 && tokensForLiquidity == 0, "Error: TOKENS_ALREADY_DEPOSITED");
+        require(_tokensForClaiming > _tokensForLiquidity, "Error: INVALID_tokensForLiquidity");
+        erc20Contract.transferFrom(_msgSender(), address(this), _tokensForClaiming + _tokensForLiquidity);
+        tokensForClaiming = _tokensForClaiming;
+        tokensForLiquidity = _tokensForLiquidity;
 
-        emit DepositTokens(_msgSender(), tokens_for_claiming, tokens_for_liquidity);
+        emit DepositTokens(_msgSender(), tokensForClaiming, tokensForLiquidity);
     }
 
     /*
     * Used by the fairlaunch creator to transfer the collected liquidity to Uniswap and enable token claims
     */
     function createPoolAndAddLiquidity() external onlyOwner {
-        require(hasDepositsFinished(), "Error: Deposits are still active.");
-        require(total_eth_deposited != 0 && tokens_for_liquidity != 0, "Error: Invalid contract balances. Cannot proceed with adding Uniswap liquidity.");
+        require(hasDepositsFinished(), "Error: DEPOSITS_STILL_ACTIVE");
+        require(totalEthDeposited != 0 && tokensForLiquidity != 0, "Error: INVALID_ETH_BALANCE");
 
-        uint256 _team_share = (total_eth_deposited * team_share) / 100;
-        uint256 eth_for_liquidity = total_eth_deposited - _team_share;
+        uint256 _teamShare = (totalEthDeposited * teamShare) / 100;
+        uint256 ethForLiquidity = totalEthDeposited - _teamShare;
 
         // providing liquidity
-        (uint amountToken, uint amountETH,) = UniswapV2Router02.addLiquidityETH{value : eth_for_liquidity}(
-            token_address,
-            tokens_for_liquidity,
-            tokens_for_liquidity,
-            eth_for_liquidity,
+        (uint amountToken, uint amountETH,) = uniswapV2Router02.addLiquidityETH{value : ethForLiquidity}(
+            tokenAddress,
+            tokensForLiquidity,
+            tokensForLiquidity,
+            ethForLiquidity,
             owner(),
             block.timestamp + 600
         );
-        require(amountToken == tokens_for_liquidity && amountETH == eth_for_liquidity, "Error: Method addLiquidityETH failed.");
+        require(amountToken == tokensForLiquidity && amountETH == ethForLiquidity, "Error: addLiquidityETH_FAILED");
 
         // enable token withdrawals
-        liquidity_added = true;
+        liquidityAdded = true;
 
         // sending team share to the owner
-        payable(owner()).transfer(_team_share);
+        payable(owner()).transfer(_teamShare);
 
-        emit CreatePoolAndAddLiquidity(_msgSender(), tokens_for_liquidity, total_eth_deposited);
+        emit CreatePoolAndAddLiquidity(_msgSender(), tokensForLiquidity, totalEthDeposited);
     }
 
     /*
     * Used by the fairlaunch creator to cancel the fairlaunch
     */
     function cancelFairlaunch() external onlyOwner {
-        require(!cancel_fairlaunch, "Error: Fairlaunch already cancelled.");
-        cancel_fairlaunch = true;
+        require(!cancelFairlaunchBool, "Error: FAILED_LAUNCH_CANCELLED");
+        cancelFairlaunchBool = true;
 
         // owner withdrawing previously deposited tokens
-        ERC20.transfer(owner(), tokens_for_claiming + tokens_for_liquidity);
+        erc20Contract.transfer(owner(), tokensForClaiming + tokensForLiquidity);
 
-        emit CancelFairlaunch(_msgSender(), tokens_for_claiming + tokens_for_liquidity);
+        emit CancelFairlaunch(_msgSender(), tokensForClaiming + tokensForLiquidity);
     }
 
     /*
     * Method where users participate in the fairlaunch
     */
     function depositETH() external payable {
-        require(areDepositsActive(), "Error: Deposits not active yet.");
-        require(msg.value >= min_deposit && msg.value + deposits[_msgSender()] <= max_deposit, "Error: Invalid deposit amount.");
-        require(!cancel_fairlaunch, "Error: Fairlaunch cancelled.");
+        require(areDepositsActive(), "Error: DEPOSITS_NOT_ACTIVE");
+        require(msg.value >= minDeposit && msg.value + deposits[_msgSender()] <= maxDeposit, "Error: INVALID_DEPOSIT_AMOUNT");
+        require(!cancelFairlaunchBool, "Error: FAIRLAUNCH_IS_CANCELLED");
 
         deposits[_msgSender()] += msg.value;
-        total_eth_deposited += msg.value;
+        totalEthDeposited += msg.value;
 
         emit DepositETH(_msgSender(), msg.value);
     }
@@ -156,14 +155,14 @@ contract FairlaunchProgramContract is Ownable {
     * After liquidity is added to Uniswap with this method users are able to claim their token share
     */
     function claimTokens() external returns (uint256) {
-        require(hasDepositsFinished(), "Error: Deposits are still active. You can withdraw once they finish.");
-        require(getCurrentTokenShare() > 0, "Error: Invalid deposit amount.");
-        require(!cancel_fairlaunch, "Error: Fairlaunch cancelled.");
-        require(liquidity_added, "Error: Claiming have not yet started.");
+        require(hasDepositsFinished(), "Error: CLAIMING_NOT_ACTIVE");
+        require(getCurrentTokenShare() > 0, "Error: INVALID_TOKEN_SHARE");
+        require(!cancelFairlaunchBool, "Error: FAIRLAUNCH_IS_CANCELLED");
+        require(liquidityAdded, "Error: LIQUIDITY_NOT_ADDED");
 
         uint256 userTokens = getCurrentTokenShare();
         deposits[_msgSender()] = 0;
-        ERC20.transfer(_msgSender(), userTokens);
+        erc20Contract.transfer(_msgSender(), userTokens);
 
         emit ClaimTokens(_msgSender(), userTokens);
 
@@ -174,17 +173,17 @@ contract FairlaunchProgramContract is Ownable {
     * If the fairlaunch is cancelled users are able to withdraw their previously deposited ETH
     */
     function withdrawETH() external returns (uint256) {
-        require(cancel_fairlaunch, "Error: Fairlaunch not cancelled.");
-        require(getCurrentTokenShare() > 0 && deposits[_msgSender()] > 0, "Error: Invalid deposit amount.");
+        require(cancelFairlaunchBool, "Error: FAIRLAUNCH_NOT_CANCELLED");
+        require(getCurrentTokenShare() > 0 && deposits[_msgSender()] > 0, "Error: INVALID_DEPOSIT_AMOUNT");
 
-        uint256 user_eth = deposits[_msgSender()];
+        uint256 userEthAmount = deposits[_msgSender()];
         deposits[_msgSender()] = 0;
 
-        payable(_msgSender()).transfer(user_eth);
+        payable(_msgSender()).transfer(userEthAmount);
 
-        emit WithdrawETH(_msgSender(), user_eth);
+        emit WithdrawETH(_msgSender(), userEthAmount);
 
-        return user_eth;
+        return userEthAmount;
     }
 
     /*
@@ -192,21 +191,21 @@ contract FairlaunchProgramContract is Ownable {
     */
     function getCurrentTokenShare() public view returns (uint256) {
         if (deposits[_msgSender()] > 0) {
-            return (((deposits[_msgSender()] * scaling) / total_eth_deposited) * tokens_for_claiming) / scaling;
+            return (((deposits[_msgSender()] * SCALING) / totalEthDeposited) * tokensForClaiming) / SCALING;
         } else {
             return 0;
         }
     }
 
     function areDepositsActive() public view returns (bool) {
-        return block.timestamp > start_time &&
-        block.timestamp < end_time &&
-        tokens_for_claiming != 0 &&
-        tokens_for_liquidity != 0;
+        return block.timestamp > startTime &&
+        block.timestamp < endTime &&
+        tokensForClaiming != 0 &&
+        tokensForLiquidity != 0;
     }
 
     function hasDepositsFinished() public view returns (bool) {
-        return block.timestamp > start_time && block.timestamp > end_time;
+        return block.timestamp > startTime && block.timestamp > endTime;
     }
 }
 
@@ -221,7 +220,7 @@ interface IUniswapV2Router02 {
         uint amountTokenMin,
         uint amountETHMin,
         address to,
-        int deadline
+        uint deadline
     ) external payable returns (
         uint amountToken,
         uint amountETH,
