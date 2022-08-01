@@ -68,7 +68,7 @@ describe("Fairlaunch Program", function () {
         console.log('Waiting for fairlaunch to end ...');
         await sleep(60000);
 
-        var hasDepositsFinished = await FairlaunchProgramContract.hasDepositsFinished();
+        const hasDepositsFinished = await FairlaunchProgramContract.hasDepositsFinished();
         if (hasDepositsFinished) {
             console.log('Fairlaunch deposits ended.');
             const ownerAddingLiquidity = await FairlaunchProgramContract.connect(owner).createPoolAndAddLiquidity();
